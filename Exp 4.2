@@ -1,0 +1,71 @@
+import java.util.*;
+
+class TicketBookingSystem {
+    private final int totalSeats;
+    private final boolean[] seats;
+
+    public TicketBookingSystem(int totalSeats) {
+        this.totalSeats = totalSeats;
+        this.seats = new boolean[totalSeats];
+    }
+
+    public synchronized boolean bookSeat(int seatNumber, String passenger) {
+        if (seatNumber < 0 || seatNumber >= totalSeats) {
+            System.out.println(passenger + " attempted to book an invalid seat number: " + seatNumber);
+            return false;
+        }
+        if (!seats[seatNumber]) {
+            seats[seatNumber] = true;
+            System.out.println(passenger + " successfully booked seat number " + seatNumber);
+            return true;
+        } else {
+            System.out.println(passenger + " attempted to book already booked seat number " + seatNumber);
+            return false;
+        }
+    }
+}
+
+class PassengerThread extends Thread {
+    private final TicketBookingSystem bookingSystem;
+    private final int seatNumber;
+    private final String passenger;
+
+    public PassengerThread(TicketBookingSystem bookingSystem, int seatNumber, String passenger, int priority) {
+        this.bookingSystem = bookingSystem;
+        this.seatNumber = seatNumber;
+        this.passenger = passenger;
+        setPriority(priority);
+    }
+
+    @Override
+    public void run() {
+        bookingSystem.bookSeat(seatNumber, passenger);
+    }
+}
+
+public class TicketBookingApp {
+    public static void main(String[] args) {
+        TicketBookingSystem system = new TicketBookingSystem(5);
+        
+        List<PassengerThread> passengers = new ArrayList<>();
+        passengers.add(new PassengerThread(system, 2, "VIP Alice", Thread.MAX_PRIORITY));
+        passengers.add(new PassengerThread(system, 2, "Regular Bob", Thread.MIN_PRIORITY));
+        passengers.add(new PassengerThread(system, 3, "VIP Charlie", Thread.MAX_PRIORITY));
+        passengers.add(new PassengerThread(system, 3, "Regular Dave", Thread.NORM_PRIORITY));
+        passengers.add(new PassengerThread(system, 1, "Regular Eve", Thread.NORM_PRIORITY));
+        
+        Collections.shuffle(passengers); // Randomize order of execution
+        
+        for (PassengerThread passenger : passengers) {
+            passenger.start();
+        }
+        
+        for (PassengerThread passenger : passengers) {
+            try {
+                passenger.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
